@@ -10,27 +10,24 @@
 .eqv  WHEREY     0xffff8040    # Integer: Current y-location of MarsBot 
 
 .data
-	script0: .asciiz "135,0,2000,180,1,3000,157,1,750,135,1,750,90,1,1000,45,1,750,23,1,750,0,1,3000"
-	script4: .asciiz "20,1,2000,31,2,1200,54,3,2100,135,0,2000,255,1,2000,240,1,2500,150,1,2500,0,1,2000,135,0,2000,180,1,3000,157,1,750,135,1,750,90,1,1000,45,1,750,23,1,750,0,1,3000"
-	script8: .asciiz "135,0,2000,255,1,2000,240,1,2500,150,1,2500,0,1,2000"
-	String0wrong: .asciiz "Postscript so 0 sai do  "
-	String4wrong: .asciiz "Postscript so 4 sai do "
-	String8wrong: .asciiz "Postscript so 8 sai do "
-	StringAllwrong: .asciiz "Tat ca Postscript deu sai "
-	Reasonwrong1:	.asciiz "loi cu phap  "
-	Reasonwrong2:	.asciiz "thieu bo so "
+	script0: .asciiz "0,0,8820,90,0,2000,180,1,8820,90,1,2666,0,0,4410,270,1,2666,0,0,4410,90,1,2666"
+	script4: .asciiz "165,0,10000,71,1,1700,37,1,1700,17,1,1700,0,1,1700,341,1,1700,320,1,1700,295,1,1700,180,1,8820,90,0,7000,270,1,2300,345,1,4520,15,1,4000,75,1,2500,90,0,2000,180,1,8820,90,1,2666,0,0,4410,270,1,2666,0,0,4410,90,1,2666"
+	script8: .asciiz "90,0,8000,270,1,2300,345,1,4520,15,1,4000,75,1,2500"
+	String0wrong: .asciiz "Postscript so 0 sai do "
+	String4wrong: .asciiz "Postscript so 4 sai do"
+	String8wrong: .asciiz "Postscript so 8 sai do"
+	StringAllwrong: .asciiz "Tat ca Postscript deu sai"
+	Reasonwrong1:	.asciiz "loi cu phap"
+	Reasonwrong2:	.asciiz "thieu bo so"
 	EndofProgram: .asciiz "Chuong trinh ket thuc!"
+	ChooseScript:	.asciiz "Nhap vao so nguyen: "
 	Array: .word
 	
 .text
 main:		la $k0, Array
 		jal StringCheck
-		la $a0, script0
-		la $a1, Array
-		jal StringSolve
-		la $s0, Array
+		jal Choose
 		
-		jal MarsbotControl
 		
 end_of_main:	li $v0, 55
 		la $a0, EndofProgram
@@ -100,7 +97,7 @@ loop_Check:	lb $a2, 0($a0)
 		blt $a2, 0x30, wrong1
 		bgt $a2, 0x39, wrong1
 		j next_loop
-is_comma:	beq $v0, 0x2C, wrong2
+is_comma:	beq $v0, 0x2C, wrong1
 		addi $a3, $a3, 1 #so dau phay cong 1
 next_loop:	addi $a0, $a0, 1 #Tang a0 + 1 => chi den byte tiep theo
 		addi $v0, $a2, 0 #v0 giu byte truoc 
@@ -109,7 +106,7 @@ wrong1:		li $a1, 1 #gan a1 = 1, day sai do xuat hien chu hoac ky hieu
 		jr $ra #Quay ve ctr con goc
 wrong2: 	li $a1, 2 #a1= 2, day sai do thieu bo so
 		jr $ra
-end_string:	beq $v0, 0x2C, wrong2 #Neu ky tu cuoi cung cua chuoi la , => sai
+end_string:	beq $v0, 0x2C, wrong1 #Neu ky tu cuoi cung cua chuoi la , => sai
 		addi $a3, $a3, -2
 		li $a2, 3 #gan a2 = 3
 		div $a3, $a2 #a3/3 
@@ -134,6 +131,39 @@ Reason3:	li $v0, 55
 		li $a1, 0
 call:		syscall
 		jr $ra
+#------------------------
+#Choose: Ham lua chon
+Choose:		addi $sp, $sp, 4
+		sw $ra, 0($sp)
+Choose_main:	li $v0, 51
+		la $a0, ChooseScript
+		syscall
+		beq $a0, 1, end_of_choose
+		beq $a0, 4, Choose4
+		beq $a0, 8, Choose8
+		la $a0, script0
+		addi $a1, $t7, 0
+		jal StringSolve
+		addi $s0, $t7, 0
+		jal MarsbotControl
+		j Choose_onemore
+Choose4:	la $a0, script4
+		addi $a1, $t8, 0
+		jal StringSolve
+		addi $s0, $t8, 0
+		jal MarsbotControl
+		j Choose_onemore
+Choose8:	la $a0, script8
+		addi $a1, $t9, 0
+		jal StringSolve
+		addi $s0, $t9, 0
+		jal MarsbotControl
+Choose_onemore:		j Choose_main
+end_of_choose:		lw $ra, 0($sp)
+			addi $sp, $sp, -4
+			jr $ra
+
+
 
 #-----------------
 #StringSolve: Xu ly bien doi chuoi thanh so
@@ -146,7 +176,8 @@ call:		syscall
 #s4: Dem tu 1 - s1 khi chuyen so
 #s5: 10^i
 #------------------
-StringSolve:	li $s0, 1 #Gan gia tri s0 khac 0 de bat dau ctr 
+StringSolve:	addi $sp, $sp, 4 #Luu sp sang o nho khac do co su dung sp
+		li $s0, 1 #Gan gia tri s0 khac 0 de bat dau ctr 
 mainSS:		li $s3, 10
 		li $s2, 0
 		li $s1, 1
@@ -180,7 +211,8 @@ SaveArray:	sw $s2, 0($a1)
 		beq $v0, 0x00, end_of_StringSolve
 		j mainSS
 #______________
-end_of_StringSolve: jr $ra  
+end_of_StringSolve: 	addi $sp, $sp, -4
+			jr $ra  
 #----------------------------
 #MarsbotControl	: Trinh dieu khien Marsbot
 #k1: luu dia chi tro ve cho Move_non
