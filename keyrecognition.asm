@@ -60,10 +60,6 @@ sb $t3, 0($t1) # must reassign expected row
 lb $a0, 0($t2) # read scan code of key button
 beq $a0, 0x81, exit #if user choose c then end program
 
-#print: addi $v0, $zero, 34 
-#lb $a0, 0($t2)
-#syscall
-
 #s0 = base address of script if exit
 #s1 = value of script
 script0: add $s0, $zero, $t7 #base address = t7
