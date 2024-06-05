@@ -10,16 +10,15 @@
 .eqv OUT_ADDRESS_HEXA_KEYBOARD 0xFFFF0014
 .data
 	script0: .asciiz "0,0,8820,90,0,2000,180,1,8820,90,1,2666,0,0,4410,270,1,2666,0,0,4410,90,1,2666"
-	script4: .asciiz "165,0,,10000,71,1,1700,37,1,1700,17,1,1700,0,1,1700,341,1,1700,320,1,1700,295,1,1700,180,1,8820,90,0,7000,270,1,2300,345,1,4520,15,1,4000,75,1,2500,90,0,2000,180,1,8820,90,1,2666,0,0,4410,270,1,2666,0,0,4410,90,1,2666"
-	script8: .asciiz "90,0,8000,270,1,2300,345,1,4520,15,1,4000,75,1,2500"
+	script4: .asciiz "165,0,10000,71,1,1700,37,1,1700,17,1,1700,0,1,1700,341,1,1700,320,1,1700,295,1,1700,180,1,8820,90,0,7000,270,1,2300,345,1,4520,15,1,4000,75,1,2500,90,0,2000,180,1,8820,90,1,2666,0,0,4410,270,1,2666,0,0,4410,90,1,2666"
+	script8: .asciiz "180,0,7000,90,0,5000,270,1,2300,345,1,4520,15,1,4000,75,1,2500"
 	String0wrong: .asciiz "Postscript so 0 sai do  "
 	String4wrong: .asciiz "Postscript so 4 sai do "
 	String8wrong: .asciiz "Postscript so 8 sai do "
-	StringAllwrong: .asciiz "Tat ca Postscript deu sai"
-	Reasonwrong1:	.asciiz "loi cu phap"
-	Reasonwrong2:	.asciiz "thieu bo so"
+	StringAllwrong: .asciiz "Tat ca Postscript deu sai "
+	Reasonwrong1:	.asciiz "loi cu phap "
+	Reasonwrong2:	.asciiz "thieu bo so "
 	EndofProgram: .asciiz "Chuong trinh ket thuc!"
-	ChooseScript:	.asciiz "Nhap vao so nguyen: "
 	Array: .word
 	
 .text
@@ -152,17 +151,17 @@ beq $a0, 0x11, Found_script0 #if user choose 0 then run script 0
 li $t3, 0x02 # check row 2 with key 4, 5, 6, 7
 sb $t3, 0($t1) # must reassign expected row
 lb $a0, 0($t2) # read scan code of key button
-beq $a0, 0x21, Found_script4 #if user choose 4 then run script 4
+beq $a0, 0x12, Found_script4 #if user choose 4 then run script 4
 #bnez $a0, print
 li $t3, 0x04 # check row 3 with key 8, 9, A, B
 sb $t3, 0($t1) # must reassign expected row
 lb $a0, 0($t2) # read scan code of key button
-beq $a0, 0x41, Found_script8 #if user choose 8 then run script 8
+beq $a0, 0x14, Found_script8 #if user choose 8 then run script 8
 #bnez $a0, print
 li $t3, 0x08 # check row 4 with key C, D, E, F
 sb $t3, 0($t1) # must reassign expected row
 lb $a0, 0($t2) # read scan code of key button
-beq $a0, 0x81, end_of_main #if user choose c then end program
+beq $a0, 0x18, end_of_main #if user choose c then end program
 
 #s0 = base address of script if exit
 #s1 = value of script
@@ -179,14 +178,17 @@ Found_script8: add $a1, $zero, $t9 #base address = t9
 #if s0 = 1 or 2 then scipt is wrong --> choose another script
 		la $a0, String8wrong
 		la $s3, script8
-		j Found
 Found:	beq $a1, 1, WrongScript
 	beq $a1, 2, WrongScript
 	addi $a0, $s3, 0 #nap dia chi stringX vao $a0
 	lw $s1, 0($a1)
 	bne $s1, 0, StringRun #Nếu chuỗi chưa chuyển thành số thì nhảy đến hàm chuyển
 	#Nếu không thì chạy SCRIPT
+	addi $a2, $a1, 0 #a2 luu bien mang
 	jal StringSolve	
+	addi $s0, $a2, 4 #dia chi mang bat dau xet bat dau tu pt t2
+	jal MarsbotControl
+	j re_enable
 WrongScript: 	jal WrongMessage2
 
 re_enable: 	li $t3, 0x80 # bit 7 of = 1 to enable interrupt
@@ -271,7 +273,7 @@ end_of_StringSolve: 	addi $sp, $sp, -4
 #a0: tg chay
 #a2: bit track - untrack
 #-------------------------
-MarsbotControl: li $k1, 0
+MarsbotControl: li $k0, 0
 		li $s1, -1
 MB_InSR:	addi  $sp,$sp,4    # Save $a0 because we may change it later 
         	sw    $ra,0($sp) 
@@ -292,7 +294,6 @@ NotLeave:	jal     UNTRACK           # draw track line
 		addi    $v0,$zero,32   
                 syscall  
         	nop 
-        	jal TRACK
 		j MB_nextData
 Leave:		jal     TRACK           # and draw new track line 
         	nop  
@@ -300,32 +301,12 @@ Leave:		jal     TRACK           # and draw new track line
         	syscall 	#a0 la tham so tg quay
        		jal     UNTRACK         # keep old track 
         	nop 
-        	jal     TRACK           # and draw new track line 
-        	nop 
 MB_nextData:  	j TakeData  
 MB_EndScript:	jal STOP
 MB_ResSR:	lw      $ra, 0($sp)     # Restore the registers from stack 
         	addi    $sp,$sp,-4 
 end_of_MarsbotControl:	jr $ra		
-				
-#-------------------------------
-#Moving khong vet: can tham so a0 - quy dinh huong di chuyen
-#-----------------------------
-Move_Non:
-	addi $k1, $ra, 0 #luu dia chi tro ve	
-	jal     UNTRACK           # draw track line 
-        nop 
-        jal     ROTATE 
-        nop 
-        jal     GO 
-        nop 
-	addi    $v0,$zero,32    # Keep running by sleeping in 1000 ms 
-        	#Cho Mars Bot cach ra mot doan cho de nhin
-                syscall  
-        nop 
-        jal TRACK
-	addi $ra, $k1, 0
-	jr $ra 
+
 #----------------------------------------------------------- 
 # GO procedure, to start running 
 # param[in]    none 
