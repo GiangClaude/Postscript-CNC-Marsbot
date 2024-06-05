@@ -15,7 +15,9 @@ String4wrong: .asciiz "Postscript so 4 sai do "
 String8wrong: .asciiz "Postscript so 8 sai do "
 Reasonwrong1:	.asciiz "loi cu phap  "
 Reasonwrong2:	.asciiz "thieu bo so "
-	
+ChooseAnotherScript: .asciiz "Vui long chon postscipt khac"
+NotCheck: .asciiz "Chua check xong doi mot lat"
+		
 .text
 main:	li $t1, IN_ADDRESS_HEXA_KEYBOARD
 	li $t2, OUT_ADDRESS_HEXA_KEYBOARD
@@ -35,12 +37,14 @@ exit: 	li $v0, 10
 end_main:
 
 .ktext 0x80000180
+beq $t6, 1, IntSR
+li $v0, 55
+la $a0, NotCheck
+li $a1, 1 
+syscall
+j return
 
-IntSR: 	#addi $v0, $zero, 4 # show message
-#la $a0, Message
-#syscall
-
-li $t3, 0x01 # check row 1 with key 0, 4, 8, c
+IntSR: 	li $t3, 0x01 # check row 1 with key 0, 4, 8, c
 sb $t3, 0($t1) # must reassign expected row
 lb $a0, 0($t2) # read scan code of key button
 beq $a0, 0x11, script0 #if user choose 0 then run script 0
@@ -128,6 +132,10 @@ j re_enable
 
 WrongScript: add $a1, $s0, $zero #a1 = scipt wrong
 jal WrongMessage
+li $v0, 55
+la $a0, ChooseAnotherScript
+li $a1, 1
+syscall
 
 re_enable: li $t3, 0x80 # bit 7 of = 1 to enable interrupt
 sb $t3, 0($t1)
