@@ -1,10 +1,10 @@
 .eqv IN_ADDRESS_HEXA_KEYBOARD 0xFFFF0012
 .eqv OUT_ADDRESS_HEXA_KEYBOARD 0xFFFF0014
 .eqv HEADING 0xffff8010 # Integer: An angle between 0 and 359
-# 0 : North (up)
-# 90: East (right)
-# 180: South (down)
-# 270: West (left)
+				# 0 : North (up)
+				# 90: East (right)
+				# 180: South (down)
+				# 270: West (left)
 .eqv MOVING 0xffff8050 # Boolean: whether or not to move
 .eqv LEAVETRACK 0xffff8020 # Boolean (0 or non-0):
 # whether or not to leave a track
@@ -18,20 +18,20 @@ Reasonwrong2:	.asciiz "thieu bo so "
 	
 .text
 main:	li $t1, IN_ADDRESS_HEXA_KEYBOARD
-li $t2, OUT_ADDRESS_HEXA_KEYBOARD
-li $t3, 0x80 # bit 7 of = 1 to enable interrupt
-sb $t3, 0($t1)
+	li $t2, OUT_ADDRESS_HEXA_KEYBOARD
+	li $t3, 0x80 # bit 7 of = 1 to enable interrupt
+	sb $t3, 0($t1)
 
-Loop: nop
-addi $v0, $zero, 32
-li $a0, 200
-syscall
-nop
-nop
-b Loop # Wait for interrupt
+Loop: 	nop
+	addi $v0, $zero, 32
+	li $a0, 200
+	syscall
+	nop
+	nop
+	b Loop # Wait for interrupt
 
-exit: li $v0, 10
-syscall
+exit: 	li $v0, 10
+	syscall
 end_main:
 
 .ktext 0x80000180
@@ -71,7 +71,6 @@ beq $s0, 2, WrongScript
 lw $s1, 0($t7)
 beq $s1, 0, StringSolve #Nếu chuỗi chưa chuyển thành số thì nhảy đến hàm chuyển
 #Nếu không thì chạy SCRIPT
-add 
 j runSCRIPT
 
 script4: add $s0, $zero, $t8 #base address = t8
