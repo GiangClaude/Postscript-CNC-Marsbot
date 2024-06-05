@@ -15,6 +15,7 @@ String4wrong: .asciiz "Postscript so 4 sai do "
 String8wrong: .asciiz "Postscript so 8 sai do "
 Reasonwrong1:	.asciiz "loi cu phap  "
 Reasonwrong2:	.asciiz "thieu bo so "
+ChooseAnotherScript: .asciiz "Vui long chon postscipt khac"
 	
 .text
 main:	li $t1, IN_ADDRESS_HEXA_KEYBOARD
@@ -129,6 +130,10 @@ j re_enable
 
 WrongScript: add $a1, $s0, $zero #a1 = scipt wrong
 jal WrongMessage
+li $v0, 55
+la $a0, ChooseAnotherScript
+li $a1, 1
+syscall
 
 re_enable: li $t3, 0x80 # bit 7 of = 1 to enable interrupt
 sb $t3, 0($t1)
