@@ -6,19 +6,16 @@
 .eqv  MOVING     0xffff8050    # Boolean: whether or not to move 
 .eqv  LEAVETRACK 0xffff8020    # Boolean (0 or non-0): 
                                #    whether or not to leave a track 
-.eqv  WHEREX     0xffff8030    # Integer: Current x-location of MarsBot 
-.eqv  WHEREY     0xffff8040    # Integer: Current y-location of MarsBot 
-
 .data
 	script0: .asciiz "0,0,8820,90,0,2000,180,1,8820,90,1,2666,0,0,4410,270,1,2666,0,0,4410,90,1,2666"
-	script4: .asciiz "165,0,10000,71,1,1700,37,1,1700,17,1,1700,0,1,1700,341,1,1700,320,1,1700,295,1,1700,180,1,8820,90,0,7000,270,1,2300,345,1,4520,15,1,4000,75,1,2500,90,0,2000,180,1,8820,90,1,2666,0,0,4410,270,1,2666,0,0,4410,90,1,2666"
-	script8: .asciiz "90,0,8000,270,1,2300,345,1,4520,15,1,4000,75,1,2500"
+	script4: .asciiz "165,0,,10000,71,1,1700,37,1,1700,17,1,1700,0,1,1700,341,1,1700,320,1,1700,295,1,1700,180,1,8820,90,0,7000,270,1,2300,345,1,4520,15,1,4000,75,1,2500,90,0,2000,180,1,8820,90,1,2666,0,0,4410,270,1,2666,0,0,4410,90,1,2666"
+	script8: .asciiz "90,0,8000,270,2300,345,1,4520,15,1,4000,75,1,2500"
 	String0wrong: .asciiz "Postscript so 0 sai do "
-	String4wrong: .asciiz "Postscript so 4 sai do"
-	String8wrong: .asciiz "Postscript so 8 sai do"
+	String4wrong: .asciiz "Postscript so 4 sai do "
+	String8wrong: .asciiz "Postscript so 8 sai do "
 	StringAllwrong: .asciiz "Tat ca Postscript deu sai"
 	Reasonwrong1:	.asciiz "loi cu phap"
-	Reasonwrong2:	.asciiz "thieu bo so"
+	Reasonwrong2:	.asciiz "thieu bo so   "
 	EndofProgram: .asciiz "Chuong trinh ket thuc!"
 	ChooseScript:	.asciiz "Nhap vao so nguyen: "
 	Array: .word
@@ -49,28 +46,22 @@ SC_InSR:	addi  $sp,$sp,4    # Save $a0 because we may change it later
         	sw    $ra,0($sp)  
 mainSC:		la $a0, script0
         	jal Check
-        	addi $t7, $a1, 0 #t7 = gia tri dung/sai cua chuoi 0
-        	bgt $t7, 2, Check_script4
+        	addi $t7, $a0, 0 #t7 = gia tri dung/sai cua chuoi 0
+        	la $a0, String0wrong #Gan a0 = message khi chuoi 0 sai
+        	jal WrongMessage
         	nop
-       		la $a0, String0wrong #Gan a0 = message khi chuoi 0 sai
-       		addi $s0, $s0, 1
-       		jal WrongMessage
 Check_script4: 	la $a0, script4
         	jal Check
-        	addi $t8, $a1, 0 #t8 = gia tri dung/sai cua chuoi 4
-       		bgt $t8, 2, Check_script8
-       		nop
-       		la $a0, String4wrong #Gan a0 = message khi chuoi 0 sai
-       		addi $s0, $s0, 1
+        	addi $t8, $a0, 0 #t8 = gia tri dung/sai cua chuoi 4
+        	la $a0, String4wrong #Gan a0 = message khi chuoi 0 sai
        		jal WrongMessage
-Check_script8: 	la $a0, script8
+       		nop
+Check_script8:	la $a0, script8
         	jal Check
-        	addi $t9, $a1, 0 #t9 = gia tri dung/sai cua chuoi 8
-       		bgt $t9, 2, SC_ResSR
-       		nop
-       		la $a0, String8wrong #Gan a0 = message khi chuoi 0 sai
-       		addi $s0, $s0, 1
+        	addi $t9, $a0, 0 #t9 = gia tri dung/sai cua chuoi 8
+        	la $a0, String8wrong #Gan a0 = message khi chuoi 0 sai
        		jal WrongMessage
+       		nop
        		blt $s0, 3, SC_ResSR
        		li $a1, 3
        		la $a0, StringAllwrong
@@ -78,8 +69,7 @@ Check_script8: 	la $a0, script8
        		j end_of_main
 SC_ResSR:	lw      $ra, 0($sp)     # Restore the registers from stack 
         	addi    $sp,$sp,-4 
-end_of_StringCheck: 	
-			jr $ra        
+end_of_StringCheck: 	jr $ra      
 #---------------
 #Check: Kiem tra 1 chuoi co vi pham hay khong
 #a0: dia chi ban dau cua script
@@ -112,15 +102,17 @@ end_string:	beq $v0, 0x2C, wrong1 #Neu ky tu cuoi cung cua chuoi la , => sai
 		div $a3, $a2 #a3/3 
 		mfhi $a2 #a2 = a3 mod 3 = so dau phay mod 3
 		bnez $a2, wrong2 #neu a2 != 0 => so dau phay khong chia 3 du 2 => khong du bo so
-		addi $a1, $k0, 0 #a1 = k0 => Chuoi dung va a1 chua dia chi mang cua chuoi dang xet
+		addi $a0, $k0, 0 #a1 = k0 => Chuoi dung va a0 chua dia chi mang cua chuoi dang xet
 		addi $a3, $a3, 4 #a3= a3 + 3 = so cac so + 2 (de pt cuoi cung cua mang mang gia tri -1)
 		sll $a3, $a3, 2 #a3= a3*4
 		add $k0, $k0, $a3 #k0 chi den dia chi moi de nhan vao chuoi tiep theo neu chuoi dung
 		li $a2, -1
 		sw $a2, -4($k0)
+		li $a1, 0
 		jr $ra 
 #------------------
 WrongMessage:	li $v0, 59
+		beq $a1, 0, end_of_WN
 		beq $a1, 2, Reason2
 		beq $a1, 3, Reason3
 		la $a1, Reasonwrong1 #sai do ly do 1
@@ -129,8 +121,9 @@ Reason2:	la $a1,Reasonwrong2 #sai do ly do 2
 		j call
 Reason3:	li $v0, 55
 		li $a1, 0
-call:		syscall
-		jr $ra
+call:		addi $s0, $s0, 1
+		syscall
+end_of_WN:	jr $ra
 #------------------------
 #Choose: Ham lua chon
 Choose:		addi $sp, $sp, 4
@@ -178,6 +171,9 @@ end_of_choose:		lw $ra, 0($sp)
 #------------------
 StringSolve:	addi $sp, $sp, 4 #Luu sp sang o nho khac do co su dung sp
 		li $s0, 1 #Gan gia tri s0 khac 0 de bat dau ctr 
+		addi $s3, $zero, 1
+		sw $s3, 0($a1)	#Luu bit 1 vao pt dau tien mang de xac dinh chuoi da duoc chuyen
+		addi $a1, $a1, 4 #Luu gia tri tu pt thu 2
 mainSS:		li $s3, 10
 		li $s2, 0
 		li $s1, 1
@@ -238,32 +234,23 @@ MB_Run:		jal ROTATE
 		bne $a2, 0, Leave
 NotLeave:	jal     UNTRACK           # draw track line 
         	nop 
-        	jal     ROTATE 
-        	nop 
         	jal     GO 
         	nop 
-		addi    $v0,$zero,32    # Keep running by sleeping in 1000 ms 
-        	#Cho Mars Bot cach ra mot doan cho de nhin
+		addi    $v0,$zero,32   
                 syscall  
         	nop 
         	jal TRACK
 		j MB_nextData
-Leave:		
-		jal     TRACK           # and draw new track line 
+Leave:		jal     TRACK           # and draw new track line 
         	nop  
-        	jal     ROTATE 	#a1 la tham so goc quay
-        	nop 
-         
 		addi    $v0,$zero,32    # Keep running by sleeping in 2000 ms        
         	syscall 	#a0 la tham so tg quay
- 
        		jal     UNTRACK         # keep old track 
         	nop 
         	jal     TRACK           # and draw new track line 
         	nop 
 MB_nextData:  	j TakeData  
-MB_EndScript:	jal UNTRACK
-		jal STOP
+MB_EndScript:	jal STOP
 MB_ResSR:	lw      $ra, 0($sp)     # Restore the registers from stack 
         	addi    $sp,$sp,-4 
 end_of_MarsbotControl:	jr $ra		
