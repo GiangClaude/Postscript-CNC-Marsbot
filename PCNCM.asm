@@ -8,17 +8,20 @@
                                #    whether or not to leave a track 
 .eqv IN_ADDRESS_HEXA_KEYBOARD 0xFFFF0012
 .eqv OUT_ADDRESS_HEXA_KEYBOARD 0xFFFF0014
+.eqv  MASK_CAUSE_KEYMATRIX 0x00000800     # Bit 11: Key matrix interrupt 
 .data
 	script0: .asciiz "0,0,8820,90,0,2000,180,1,8820,90,1,2666,0,0,4410,270,1,2666,0,0,4410,90,1,2666"
-	script4: .asciiz "165,0,10000,71,1,1700,37,1,1700,17,1,1700,0,1,1700,341,1,1700,320,1,1700,295,1,1700,180,1,8820,90,0,7000,270,1,2300,345,1,4520,15,1,4000,75,1,2500,90,0,2000,180,1,8820,90,1,2666,0,0,4410,270,1,2666,0,0,4410,90,1,2666"
+	script4: .asciiz "71,1,,1700,37,1,1700,17,1,1700,0,1,1700,341,1,1700,320,1,1700,295,1,1700,180,1,8820,90,0,7000,270,1,2300,345,1,4520,15,1,4000,75,1,2500,90,0,2000,180,1,8820,90,1,2666,0,0,4410,270,1,2666,0,0,4410,90,1,2666"
 	script8: .asciiz "180,0,7000,90,0,5000,270,1,2300,345,1,4520,15,1,4000,75,1,2500"
 	String0wrong: .asciiz "Postscript so 0 sai do  "
 	String4wrong: .asciiz "Postscript so 4 sai do "
 	String8wrong: .asciiz "Postscript so 8 sai do "
 	StringAllwrong: .asciiz "Tat ca Postscript deu sai "
-	Reasonwrong1:	.asciiz "loi cu phap "
-	Reasonwrong2:	.asciiz "thieu bo so "
+	Reasonwrong1:	.asciiz "loi cu phap"
+	Reasonwrong2:	.asciiz "thieu bo so"
 	EndofProgram: .asciiz "Chuong trinh ket thuc!"
+	ChooseAnotherScript: .asciiz "Vui long chon postscipt khac"
+	NotCheck: .asciiz "Chua check xong doi mot lat"
 	Array: .word
 	
 .text
@@ -36,8 +39,7 @@ Loop: 	nop
 	nop
 	nop
 	b Loop # Wait for interrupt
-
-StringRun:			
+			
 end_of_main:	li $v0, 55
 		la $a0, EndofProgram
 		li $a1, 1
@@ -81,7 +83,8 @@ Check_script8:	la $a0, script8
        		j end_of_main
 SC_ResSR:	lw      $ra, 0($sp)     # Restore the registers from stack 
         	addi    $sp,$sp,-4 
-end_of_StringCheck: 	jr $ra    
+end_of_StringCheck: 	addi $t6, $t6, 1 #luu t6 = 1 => da hoan thanh check
+			jr $ra    
 #------------------
 WrongMessage1:	li $v0, 59
 		beq $a1, 0, end_of_WN
@@ -119,8 +122,10 @@ next_loop:	addi $a0, $a0, 1 #Tang a0 + 1 => chi den byte tiep theo
 		addi $v0, $a2, 0 #v0 giu byte truoc 
 		j loop_Check
 wrong1:		li $a1, 1 #gan a1 = 1, day sai do xuat hien chu hoac ky hieu
+		li $a0, 1
 		jr $ra #Quay ve ctr con goc
 wrong2: 	li $a1, 2 #a1= 2, day sai do thieu bo so
+		li $a0, 2
 		jr $ra
 end_string:	beq $v0, 0x2C, wrong1 #Neu ky tu cuoi cung cua chuoi la , => sai
 		addi $a3, $a3, -2
@@ -139,30 +144,38 @@ end_string:	beq $v0, 0x2C, wrong1 #Neu ky tu cuoi cung cua chuoi la , => sai
 #-------------------------
 .ktext 0x80000180
 
-IntSR: 	#addi $v0, $zero, 4 # show message
-#la $a0, Message
-#syscall
 
-li $t3, 0x01 # check row 1 with key 0, 4, 8, c
-sb $t3, 0($t1) # must reassign expected row
-lb $a0, 0($t2) # read scan code of key button
-beq $a0, 0x11, Found_script0 #if user choose 0 then run script 0
-#bnez $a0, print
-li $t3, 0x02 # check row 2 with key 4, 5, 6, 7
-sb $t3, 0($t1) # must reassign expected row
-lb $a0, 0($t2) # read scan code of key button
-beq $a0, 0x12, Found_script4 #if user choose 4 then run script 4
-#bnez $a0, print
-li $t3, 0x04 # check row 3 with key 8, 9, A, B
-sb $t3, 0($t1) # must reassign expected row
-lb $a0, 0($t2) # read scan code of key button
-beq $a0, 0x14, Found_script8 #if user choose 8 then run script 8
-#bnez $a0, print
-li $t3, 0x08 # check row 4 with key C, D, E, F
-sb $t3, 0($t1) # must reassign expected row
-lb $a0, 0($t2) # read scan code of key button
-beq $a0, 0x18, end_of_main #if user choose c then end program
-
+Check_Cause:	mfc0  $t4, $13
+		li    $t3, MASK_CAUSE_KEYMATRIX # if Cause value confirm Key.. 
+        	and   $at, $t4,$t3 
+        	bne   $at,$t3, return #Neu khong phai ngat do bam ban phim thi quay lai
+        	beq $t6, 1, IntSR
+		li $v0, 55
+		la $a0, NotCheck
+		li $a1, 1 
+		syscall
+		j return
+IntSR: 			
+	li $t3, 0x81 # check row 1 with key 0, 4, 8, c
+	sb $t3, 0($t1) # must reassign expected row
+	lb $a0, 0($t2) # read scan code of key button
+	beq $a0, 0x11, Found_script0 #if user choose 0 then run script 0
+	bne $a0, 0x00, PleaseAnother
+	li $t3, 0x82 # check row 2 with key 4, 5, 6, 7
+	sb $t3, 0($t1) # must reassign expected row
+	lb $a0, 0($t2) # read scan code of key button
+	beq $a0, 0x12, Found_script4 #if user choose 4 then run script 4
+	bne $a0, 0x00, PleaseAnother
+	li $t3, 0x84 # check row 3 with key 8, 9, A, B
+	sb $t3, 0($t1) # must reassign expected row
+	lb $a0, 0($t2) # read scan code of key button
+	beq $a0, 0x14, Found_script8 #if user choose 8 then run script 8
+	bne $a0, 0x00, PleaseAnother
+	li $t3, 0x88 # check row 4 with key C, D, E, F
+	sb $t3, 0($t1) # must reassign expected row
+	lb $a0, 0($t2) # read scan code of key button
+	beq $a0, 0x18, end_of_main #if user choose c then end program
+	bne $a0, 0x00, PleaseAnother
 #s0 = base address of script if exit
 #s1 = value of script
 Found_script0: add $a1, $zero, $t7 #base address = t7 #if s0 = 1 or 2 then scipt is wrong --> choose another script
@@ -186,13 +199,17 @@ Found:	beq $a1, 1, WrongScript
 	#Nếu không thì chạy SCRIPT
 	addi $a2, $a1, 0 #a2 luu bien mang
 	jal StringSolve	
-	addi $s0, $a2, 4 #dia chi mang bat dau xet bat dau tu pt t2
-	jal MarsbotControl
-	j re_enable
+StringRun:	addi $s0, $a2, 4 #dia chi mang bat dau xet bat dau tu pt t2
+		jal MarsbotControl
+		j re_enable
 WrongScript: 	jal WrongMessage2
+PleaseAnother:		li $v0, 55
+			la $a0, ChooseAnotherScript
+			li $a1, 1
+			syscall
 
-re_enable: 	li $t3, 0x80 # bit 7 of = 1 to enable interrupt
-		sb $t3, 0($t1)
+re_enable: 	#li $t3, 0x80 # bit 7 of = 1 to enable interrupt
+		#sb $t3, 0($t1)
 
 next_pc: 	mfc0 $at, $14 # $at <= Coproc0.$14 = Coproc0.epc
 		addi $at, $at, 4 # $at = $at + 4 (next instruction)
@@ -277,6 +294,14 @@ MarsbotControl: li $k0, 0
 		li $s1, -1
 MB_InSR:	addi  $sp,$sp,4    # Save $a0 because we may change it later 
         	sw    $ra,0($sp) 
+FirstRun:	li $a1, 160
+		li $a0, 8000
+		jal ROTATE
+		nop
+		jal GO
+		nop
+		addi    $v0,$zero,32    # Keep running by sleeping in 2000 ms        
+        	syscall 
 TakeData:	lw $a1, 0($s0) #Load goc xoay
 		addi $s0, $s0, 4
 		beq $a1, $s1, MB_EndScript #Neu gia tri load duoc = -1 => ket thuc
@@ -286,18 +311,10 @@ TakeData:	lw $a1, 0($s0) #Load goc xoay
 		addi $s0, $s0, 4
 MB_Run:		jal ROTATE
 		nop
-		bne $a2, 0, Leave
-NotLeave:	jal     UNTRACK           # draw track line 
-        	nop 
-        	jal     GO 
-        	nop 
-		addi    $v0,$zero,32   
-                syscall  
-        	nop 
-		j MB_nextData
-Leave:		jal     TRACK           # and draw new track line 
+		beq $a2, 0, Leave 
+		jal     TRACK           # and draw new track line 
         	nop  
-		addi    $v0,$zero,32    # Keep running by sleeping in 2000 ms        
+Leave:		addi    $v0,$zero,32    # Keep running by sleeping in 2000 ms        
         	syscall 	#a0 la tham so tg quay
        		jal     UNTRACK         # keep old track 
         	nop 
