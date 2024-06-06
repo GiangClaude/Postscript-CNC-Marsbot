@@ -10,22 +10,29 @@
 .eqv OUT_ADDRESS_HEXA_KEYBOARD 0xFFFF0014
 .eqv  MASK_CAUSE_KEYMATRIX 0x00000800     # Bit 11: Key matrix interrupt 
 .data
-	script0: .asciiz "0,0,8820,90,0,2000,180,1,8820,90,1,2666,0,0,4410,270,1,2666,0,0,4410,90,1,2666"
+	script0: .asciiz "161,1,9285,19,1,9285,161,1,9285,19,1,9285,90,0,2000,180,1,8820,0,0,4000" 
 	script4: .asciiz "71,1,,1700,37,1,1700,17,1,1700,0,1,1700,341,1,1700,320,1,1700,295,1,1700,180,1,8820,90,0,7000,270,1,2300,345,1,4520,15,1,4000,75,1,2500,90,0,2000,180,1,8820,90,1,2666,0,0,4410,270,1,2666,0,0,4410,90,1,2666"
 	script8: .asciiz "180,0,7000,90,0,5000,270,1,2300,345,1,4520,15,1,4000,75,1,2500"
 	String0wrong: .asciiz "Postscript so 0 sai do  "
-	String4wrong: .asciiz "Postscript so 4 sai do "
-	String8wrong: .asciiz "Postscript so 8 sai do "
+	String4wrong: .asciiz "Postscript so 4 sai do  "
+	String8wrong: .asciiz "Postscript so 8 sai do  "
 	StringAllwrong: .asciiz "Tat ca Postscript deu sai "
 	Reasonwrong1:	.asciiz "loi cu phap"
 	Reasonwrong2:	.asciiz "thieu bo so"
 	EndofProgram: .asciiz "Chuong trinh ket thuc!"
 	ChooseAnotherScript: .asciiz "Vui long chon postscipt khac"
 	NotCheck: .asciiz "Chua check xong doi mot lat"
+	Done:	.asciiz "Da hoan thanh khac thuy tinh"
+	Choose:	.asciiz "----------------------MENU-----------------------\nVui long chon phim tren Digital Lab Sim\n0: VIETNAM\n4: DCE\n8: HUST\nc: Thoat chuong trinh"
+	NotNormal: .asciiz "Xay ra loi bat thuong! Vui long thu lai chuong trinh!"
 	Array: .word
 	
 .text
-main:		li $t1, IN_ADDRESS_HEXA_KEYBOARD
+main:		li $v0, 55
+		la $a0, Choose
+		li $a1, 1
+		syscall
+		li $t1, IN_ADDRESS_HEXA_KEYBOARD
 		li $t2, OUT_ADDRESS_HEXA_KEYBOARD
 		li $t3, 0x80 # bit 7 of = 1 to enable interrupt
 		sb $t3, 0($t1)
@@ -46,7 +53,6 @@ end_of_main:	li $v0, 55
 		syscall
 		li $v0, 10
 		syscall
-		
 #------------------------------
 #StringCheck: Kiem tra du lieu dau vao
 #a0: dia chi cac chuoi
@@ -98,7 +104,8 @@ Reason3:	li $v0, 55
 		li $a1, 0
 call:		addi $s0, $s0, 1
 		syscall
-end_of_WN:	jr $ra    
+end_of_WN:	jr $ra  
+
 #---------------
 #Check: Kiem tra 1 chuoi co vi pham hay khong
 #a0: dia chi ban dau cua script
@@ -143,15 +150,19 @@ end_string:	beq $v0, 0x2C, wrong1 #Neu ky tu cuoi cung cua chuoi la , => sai
 		jr $ra 
 #-------------------------
 .ktext 0x80000180
-
-
 Check_Cause:	mfc0  $t4, $13
 		li    $t3, MASK_CAUSE_KEYMATRIX # if Cause value confirm Key.. 
         	and   $at, $t4,$t3 
-        	bne   $at,$t3, return #Neu khong phai ngat do bam ban phim thi quay lai
+        	beq   $at,$t3, IntSR #Neu khong phai ngat do bam ban phim thi quay lai
+        	li $v0, 55
+        	la $a0, NotNormal #thong bao loi bat thuong
+        	li $a1, 0
+        	syscall
+       		li $v0, 10
+       		syscall
         	beq $t6, 1, IntSR
 		li $v0, 55
-		la $a0, NotCheck
+		la $a0, NotCheck #Chua check xong
 		li $a1, 1 
 		syscall
 		j return
@@ -195,21 +206,23 @@ Found:	beq $a1, 1, WrongScript
 	beq $a1, 2, WrongScript
 	addi $a0, $s3, 0 #nap dia chi stringX vao $a0
 	lw $s1, 0($a1)
-	bne $s1, 0, StringRun #Nếu chuỗi chưa chuyển thành số thì nhảy đến hàm chuyển
-	#Nếu không thì chạy SCRIPT
+	bne $s1, 0, StringRun #Nếu chuỗi chưa chuyển thành số thì nhảy đến hàm chuyển #Nếu không thì chạy SCRIPT
 	addi $a2, $a1, 0 #a2 luu bien mang
 	jal StringSolve	
 StringRun:	addi $s0, $a2, 4 #dia chi mang bat dau xet bat dau tu pt t2
 		jal MarsbotControl
-		j re_enable
-WrongScript: 	jal WrongMessage2
+		j next_pc
+WrongScript: 	li $v0, 59
+		beq $a1, 2, Reason2_2
+		la $a1, Reasonwrong1 #sai do ly do 1
+		j call_2
+Reason2_2:	la $a1,Reasonwrong2 #sai do ly do 2
+call_2:		syscall
+#------------------------------------
 PleaseAnother:		li $v0, 55
 			la $a0, ChooseAnotherScript
 			li $a1, 1
 			syscall
-
-re_enable: 	#li $t3, 0x80 # bit 7 of = 1 to enable interrupt
-		#sb $t3, 0($t1)
 
 next_pc: 	mfc0 $at, $14 # $at <= Coproc0.$14 = Coproc0.epc
 		addi $at, $at, 4 # $at = $at + 4 (next instruction)
@@ -217,19 +230,7 @@ next_pc: 	mfc0 $at, $14 # $at <= Coproc0.$14 = Coproc0.epc
 return: 	eret # Return from exception
 
 #------------------
-WrongMessage2:	li $v0, 59
-		beq $a1, 0, end_of_WN
-		beq $a1, 2, Reason2_2
-		beq $a1, 3, Reason3_2
-		la $a1, Reasonwrong1 #sai do ly do 1
-		j call_2
-Reason2_2:	la $a1,Reasonwrong2 #sai do ly do 2
-		j call_2
-Reason3_2:	li $v0, 55
-		li $a1, 0
-call_2:		addi $s0, $s0, 1
-		syscall
-end_of_WN_2:	jr $ra
+
 #-----------------
 #StringSolve: Xu ly bien doi chuoi thanh so
 #a0: dia chi chuoi
@@ -266,7 +267,7 @@ Into_loop:	beq $s4, $s1, SaveArray
 		addi $sp, $sp, -1
 		addi $s0, $s0, -48 #Doi gia tri $s0 sang so
 		mult $s0, $s5
-		mflo $s0 #s0 = s0*10^i
+		mflo $s0 #s0 = s0*10^i								
 		add $s2, $s0, $s2 #s2 + s0
 		#Next
 		mult $s5, $s3
