@@ -10,18 +10,18 @@
 .eqv OUT_ADDRESS_HEXA_KEYBOARD 0xFFFF0014
 .eqv  MASK_CAUSE_KEYMATRIX 0x00000800     # Bit 11: Key matrix interrupt 
 .data
-	script0: .asciiz "161,1,9285,19,1,9285,161,1,9285,19,1,9285,90,0,2000,180,1,8820,0,0,4000" 
-	script4: .asciiz "71,1,,1700,37,1,1700,17,1,1700,0,1,1700,341,1,1700,320,1,1700,295,1,1700,180,1,8820,90,0,7000,270,1,2300,345,1,4520,15,1,4000,75,1,2500,90,0,2000,180,1,8820,90,1,2666,0,0,4410,270,1,2666,0,0,4410,90,1,2666"
-	script8: .asciiz "180,0,7000,90,0,5000,270,1,2300,345,1,4520,15,1,4000,75,1,2500"
-	String0wrong: .asciiz "Postscript so 0 sai do  "
-	String4wrong: .asciiz "Postscript so 4 sai do  "
-	String8wrong: .asciiz "Postscript so 8 sai do  "
-	StringAllwrong: .asciiz "Tat ca Postscript deu sai "
+	script0: .asciiz "161,1,3120,19,1,3120,90,0,1000,180,1,3000,90,0,1000,0,1,3000,90,1,1000,180,0,1500,270,1,1000,180,0,1500,90,1,1000,90,0,1500,0,1,3000,270,0,1000,90,1,2000,180,0,3000,90,0,1800,0,1,3000,147,1,3580,0,1,3000,90,0,2000,199,1,3150,90,0,2000,341,1,3150,199,0,2100,90,1,1330,161,0,1050,90,0,1200,0,1,3000,153,1,3200,27,1,3200,180,1,3000"
+	script4: .asciiz "71,1,1700,37,1,1700,17,1,1700,0,1,1700,341,1,1700,320,1,1700,295,1,1700,180,1,8820,90,0,7000,270,1,2300,345,1,4520,15,1,4000,75,1,2500,90,0,2000,180,1,8820,90,1,2666,0,0,4410,270,1,2666,0,0,4410,90,1,2666"
+	script8: .asciiz "180,1,4800,0,0,2400,90,1,2500,180,0,2400,0,1,4800,90,0,1200,180, 1, 3600, 157, 1,750,135,1,750,90,1,1000,45,1,750,23,1,750,0,1,3600,90,0,3600,180,0,700,315,1,1000,270,1,1000,225,1,1000,180,1,1000,135,1,1000,90,1,1000,135,1,1000,180,1,1000,225,1,1000,270,1,1000,315,1,1000,180,0,700,90,0,4700,0,1,4800,270,0,1500,90,1,3000"
+	String0wrong: .asciiz "Postscript so 0 sai do "
+	String4wrong: .asciiz "Postscript so 4 sai do "
+	String8wrong: .asciiz "Postscript so 8 sai do "
+	StringAllwrong: .asciiz "Tat ca Postscript deu sai"
 	Reasonwrong1:	.asciiz "loi cu phap"
 	Reasonwrong2:	.asciiz "thieu bo so"
 	EndofProgram: .asciiz "Chuong trinh ket thuc!"
 	ChooseAnotherScript: .asciiz "Vui long chon postscipt khac"
-	NotCheck: .asciiz "Chua check xong doi mot lat"
+	NotCheck: .asciiz "Chua check xong doi mot lat "
 	Done:	.asciiz "Da hoan thanh khac thuy tinh"
 	Choose:	.asciiz "----------------------MENU-----------------------\nVui long chon phim tren Digital Lab Sim\n0: VIETNAM\n4: DCE\n8: HUST\nc: Thoat chuong trinh"
 	NotNormal: .asciiz "Xay ra loi bat thuong! Vui long thu lai chuong trinh!"
@@ -38,7 +38,6 @@ main:		li $v0, 55
 		sb $t3, 0($t1)
 		la $k0, Array
 		jal StringCheck
-		
 Loop: 	nop
 	addi $v0, $zero, 32
 	li $a0, 200
@@ -135,13 +134,14 @@ wrong2: 	li $a1, 2 #a1= 2, day sai do thieu bo so
 		li $a0, 2
 		jr $ra
 end_string:	beq $v0, 0x2C, wrong1 #Neu ky tu cuoi cung cua chuoi la , => sai
-		addi $a3, $a3, -2
 		li $a2, 3 #gan a2 = 3
 		div $a3, $a2 #a3/3 
 		mfhi $a2 #a2 = a3 mod 3 = so dau phay mod 3
-		bnez $a2, wrong2 #neu a2 != 0 => so dau phay khong chia 3 du 2 => khong du bo so
+		bne $a2,2, wrong2 #neu a2 != a1 != 2 => so dau phay khong chia 3 du 2 => khong du bo so
 		addi $a0, $k0, 0 #a1 = k0 => Chuoi dung va a0 chua dia chi mang cua chuoi dang xet
-		addi $a3, $a3, 5 #a3= a3 + 3 = so cac so + 2 (de pt cuoi cung cua mang mang gia tri -1)
+		addi $a3, $a3, 3 #a3= a3 + 1 + 2( A3 + 1 = so cac so co trong chuoi, 
+		#+1 de chua 1 o luu gia tri 0/1(da chuyen thanh mang/chua chuyen thanh mang)
+		#+1 de chua 1 o luu gia tri ket thuc mang
 		sll $a3, $a3, 2 #a3= a3*4
 		add $k0, $k0, $a3 #k0 chi den dia chi moi de nhan vao chuoi tiep theo neu chuoi dung
 		li $a2, -1
@@ -167,74 +167,77 @@ Check_Cause:	mfc0  $t4, $13
 		syscall
 		j return
 IntSR: 			
-	li $t3, 0x81 # check row 1 with key 0, 4, 8, c
-	sb $t3, 0($t1) # must reassign expected row
-	lb $a0, 0($t2) # read scan code of key button
-	beq $a0, 0x11, Found_script0 #if user choose 0 then run script 0
+	li $t3, 0x81 # check hang 1: 0,1,2,3
+	sb $t3, 0($t1) # Luu vao $t1
+	lb $a0, 0($t2) # Doc phim
+	beq $a0, 0x11, Found_script0 #Neu chon 0 thi chay den Found_Script0
+	bne $a0, 0x00, PleaseAnother #Neu nhan duoc so khac 0 thi can doi postscript khac
+	li $t3, 0x82 # check hang 2: 4, 5, 6, 7
+	sb $t3, 0($t1) 
+	lb $a0, 0($t2) # Doc
+	beq $a0, 0x12, Found_script4 #Neu chon 4 thi nhay den Found_script4
+	bne $a0, 0x00, PleaseAnother #Neu so khac 4 => Doi
+	li $t3, 0x84 # check hang 3: 8, 9, A, B
+	sb $t3, 0($t1) 
+	lb $a0, 0($t2) # Doc phim
+	beq $a0, 0x14, Found_script8 #Neu chon 8 thi nhay den Found_script8
+	bne $a0, 0x00, PleaseAnother #Neu so khac 8 => Doi 
+	li $t3, 0x88 # check hang 4: C, D, E, F
+	sb $t3, 0($t1) 
+	lb $a0, 0($t2) # Doc phim
+	beq $a0, 0x18, end_of_main #neu chon c thi ket thuc ctr
 	bne $a0, 0x00, PleaseAnother
-	li $t3, 0x82 # check row 2 with key 4, 5, 6, 7
-	sb $t3, 0($t1) # must reassign expected row
-	lb $a0, 0($t2) # read scan code of key button
-	beq $a0, 0x12, Found_script4 #if user choose 4 then run script 4
-	bne $a0, 0x00, PleaseAnother
-	li $t3, 0x84 # check row 3 with key 8, 9, A, B
-	sb $t3, 0($t1) # must reassign expected row
-	lb $a0, 0($t2) # read scan code of key button
-	beq $a0, 0x14, Found_script8 #if user choose 8 then run script 8
-	bne $a0, 0x00, PleaseAnother
-	li $t3, 0x88 # check row 4 with key C, D, E, F
-	sb $t3, 0($t1) # must reassign expected row
-	lb $a0, 0($t2) # read scan code of key button
-	beq $a0, 0x18, end_of_main #if user choose c then end program
-	bne $a0, 0x00, PleaseAnother
-#s0 = base address of script if exit
-#s1 = value of script
-Found_script0: add $a1, $zero, $t7 #base address = t7 #if s0 = 1 or 2 then scipt is wrong --> choose another script
+#----------------------------
+#a1: Luu dia chi mang neu chuoi dung, 1/2 neu chuoi sai => Lay du lieu tu $t7, $t8,$t9
+#a0: Gan dia chi scriptXwrong(duoc goi neu chuoi sai)
+#s3: Gan dia chi chuoi
+#----------------------------
+Found_script0: add $a1, $zero, $t7 
 		la $a0, String0wrong
 		la $s3, script0
 		j Found
-Found_script4: add $a1, $zero, $t8 #base address = t8
-#if s0 = 1 or 2 then scipt is wrong --> choose another script
+Found_script4: add $a1, $zero, $t8 
 		la $a0, String4wrong
 		la $s3, script4
 		j Found
-Found_script8: add $a1, $zero, $t9 #base address = t9
-#if s0 = 1 or 2 then scipt is wrong --> choose another script
+Found_script8: add $a1, $zero, $t9 
 		la $a0, String8wrong
 		la $s3, script8
 Found:	beq $a1, 1, WrongScript
-	beq $a1, 2, WrongScript
+	beq $a1, 2, WrongScript #Neu a1 = 1/2 thi chuoi sai => Nhay den WrongScript
 	addi $a0, $s3, 0 #nap dia chi stringX vao $a0
 	lw $s1, 0($a1)
+	addi $a2, $a1, 0 #luu dia chi lai vao a2 do thanh ghi a1 bi thay doi khi goi den StringSolve
 	bne $s1, 0, StringRun #Nếu chuỗi chưa chuyển thành số thì nhảy đến hàm chuyển #Nếu không thì chạy SCRIPT
-	addi $a2, $a1, 0 #a2 luu bien mang
 	jal StringSolve	
-StringRun:	addi $s0, $a2, 4 #dia chi mang bat dau xet bat dau tu pt t2
+StringRun:	addi $s0, $a2, 4 #Chay mang bat dau tu phan tu t2
 		jal MarsbotControl
 		j next_pc
 WrongScript: 	li $v0, 59
-		beq $a1, 2, Reason2_2
+		beq $a1, 2, WS_Reason2
 		la $a1, Reasonwrong1 #sai do ly do 1
-		j call_2
-Reason2_2:	la $a1,Reasonwrong2 #sai do ly do 2
-call_2:		syscall
+		j WS_call
+WS_Reason2:	la $a1,Reasonwrong2 #sai do ly do 2
+WS_call:	syscall
 #------------------------------------
 PleaseAnother:		li $v0, 55
 			la $a0, ChooseAnotherScript
 			li $a1, 1
-			syscall
-
+			syscall #In thong bao xin chon vi tri khac
+			j return
 next_pc: 	mfc0 $at, $14 # $at <= Coproc0.$14 = Coproc0.epc
 		addi $at, $at, 4 # $at = $at + 4 (next instruction)
 		mtc0 $at, $14 # Coproc0.$14 = Coproc0.epc <= $at
+		li $v0, 55
+		la $a0, Done
+		li $a1, 1
+		syscall #Thong bao da ve xong
 return: 	eret # Return from exception
-
-#------------------
 
 #-----------------
 #StringSolve: Xu ly bien doi chuoi thanh so
-#a0: dia chi chuoi
-#a1: dia chi mang 
+#a0: dia chi chuoi(Tham so truyen vao)
+#a1: dia chi mang (Tham so truyen vao)
 #s0: byte duoc load
 #s1: dem so truoc ','
 #s2: So da duoc xu ly
@@ -244,7 +247,7 @@ return: 	eret # Return from exception
 #------------------
 StringSolve:	addi $sp, $sp, 4 #Luu sp sang o nho khac do co su dung sp
 		li $s0, 1 #Gan gia tri s0 khac 0 de bat dau ctr 
-		addi $s3, $zero, 1
+		li $s3, 1
 		sw $s3, 0($a1)	#Luu bit 1 vao pt dau tien mang de xac dinh chuoi da duoc chuyen
 		addi $a1, $a1, 4 #Luu gia tri tu pt thu 2
 mainSS:		li $s3, 10
@@ -284,7 +287,6 @@ end_of_StringSolve: 	addi $sp, $sp, -4
 			jr $ra  
 #----------------------------
 #MarsbotControl	: Trinh dieu khien Marsbot
-#k1: luu dia chi tro ve cho Move_non
 #s0: dia chi mang ( luu truoc khi vao ctrinh con)
 #s1: -1 => Dau hieu ket thuc mang
 #a1: rotate - goc xoay
@@ -293,15 +295,15 @@ end_of_StringSolve: 	addi $sp, $sp, -4
 #-------------------------
 MarsbotControl: li $k0, 0
 		li $s1, -1
-MB_InSR:	addi  $sp,$sp,4    # Save $a0 because we may change it later 
+MB_InSR:	addi  $sp,$sp,4    # Save $ra because we may change it later 
         	sw    $ra,0($sp) 
-FirstRun:	li $a1, 160
-		li $a0, 8000
+FirstRun:	li $a1, 135
+		li $a0, 10000
 		jal ROTATE
 		nop
 		jal GO
 		nop
-		addi    $v0,$zero,32    # Keep running by sleeping in 2000 ms        
+		addi    $v0,$zero,32    # Dua Marsbot ra giua man hinh de de nhin hon       
         	syscall 
 TakeData:	lw $a1, 0($s0) #Load goc xoay
 		addi $s0, $s0, 4
