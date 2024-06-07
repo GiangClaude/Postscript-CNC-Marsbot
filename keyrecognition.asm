@@ -159,7 +159,7 @@ call:		syscall
 
 getVALUE: addi $s2, $s2, 1 #i++
 sll $s4, $s2, 2 #Gán s4 = 4i
-addi $s3, $s4, $s0 #s3 = 4i + base address = address of a[i]
+add $s3, $s4, $s0 #s3 = 4i + base address = address of a[i]
 lw $s1, 0($s3) #s1 = a[i]
 jr $ra
 
