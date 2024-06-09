@@ -12,14 +12,14 @@
 	script0: .asciiz "71,1,1700,37,1,1700,17,1,1700,0,1,1700,341,1,1700,320,1,1700,295,1,1700,180,1,8820,90,0,7000,270,1,2300,345,1,4520,15,1,4000,75,1,2500,90,0,2000,180,1,8820,90,1,2666,0,0,4410,270,1,2666,0,0,4410,90,1,2666"
 	script4: .asciiz "315,1,2000,270,1,2000,225,1,2000,180,1,2000,135,1,2000,90,1,2000,135,1,2000,180,1,2000,225,1,2000,270,1,2000,315,1,2000,90,0,6000,135,1,2000,90,1,2000,45,1,2000,0,1,6800,315,1,2000,270,1,2000,225,1,2000,180,1,6800,90,0,6000,180,0,1650,0,1,10000,90,0,6000,255,1,4000,195,1,4500,165,1,4500,90,1,4000,90,0,4000,180,0,100,0,1,10000,270,0,3000,90,1,6000"
 	script8: .asciiz "90,1,12000,180,1,8000,270,1,12000,0,1,8000,90,0,5800,180,0,2200,162,1,1200,90,1,1200,234,1,1200,162,1,1200,306,1,1200,234,1,1200,18,1,1200,306,1,1200,90,1,1200,18,1,1200"
-	StringWrong: .asciiz "Postscript so "
+	StringWrong: .asciiz "Postscript "
 	StringAllwrong:	.asciiz "Tat ca Postscript deu sai"
-	Reasonwrong1: .asciiz " sai do loi cu phap\n"
-	Reasonwrong2: .asciiz " sai do thieu bo so\n"
+	Reasonwrong1: .asciiz "sai do loi cu phap\n"
+	Reasonwrong2: .asciiz "sai do thieu bo so\n"
 	EndofProgram: .asciiz "Ket thuc chuong trinh!"
 	checkNOTdone: .asciiz "Chua check xong xin hay doi mot lat"
 	Done: .asciiz "Da cat xong!"
-	Choose:	.asciiz "----------------------MENU-----------------------\nVui long chon phim tren Digital Lab Sim\n0: DCE\n4: SOICT\n8: Co VN\nc: Thoat chuong trinh"
+	Choose:	.asciiz "----------------------MENU-----------------------\nVui long chon phim tren Digital Lab Sim\n0: DCE\n4: SOICT\n8: Co Viet Nam\nC: Thoat chuong trinh"
 	NotNormal: .asciiz "Xay ra loi bat thuong! Vui long thu lai chuong trinh!"
 	Array: .word
 	
@@ -47,7 +47,7 @@ Loop: 	nop
 	syscall
 	nop
 	nop
-	b Loop # Wait for interrupt
+	b Loop #Đợi người dùng nhấn phím trên Digital Lab Sim
 			
 exit:	li $v0, 55
 	la $a0, EndofProgram
@@ -112,6 +112,9 @@ WrongMessage:	beq $a1, 3, Reason3 #Nếu a1 = 3 thì thông báo tất cả các
 		syscall
 		li $v0, 1
 		add $a0, $k1, $zero 
+		syscall
+		li $v0, 11
+		addi $a0, $zero, 0x20 #print space
 		syscall
 		beq $a1, 1, Reason1 #Nếu a1 = 1 thì thông báo lỗi do cú pháp
 		beq $a1, 2, Reason2 #Nếu a1 = 2 thì thông báo lỗi do thiếu bộ số
@@ -189,10 +192,22 @@ Check_Cause:	mfc0 $t4, $13
         	syscall
        		li $v0, 10 #exit 
        		syscall
-notDone:	li $v0, 55
+notDone:	addi $sp, $sp, 4 #Lưu v0 của chương trình chính vào stack
+        	sw $v0, 0($sp)  
+		addi $sp, $sp, 4 #Lưu a0 của chương trình chính vào stack
+        	sw $a0, 0($sp) 
+        	addi $sp, $sp, 4 #Lưu a1 của chương trình chính vào stack
+        	sw $a1, 0($sp) 
+		li $v0, 55
 		la $a0, checkNOTdone #Chưa check xong
 		li $a1, 1 
 		syscall
+		lw $a1, 0($sp) 
+		addi $sp, $sp, -4 #Khôi phục a1
+        	lw $a0, 0($sp)
+		addi $sp, $sp, -4 #Khôi phục a0
+        	lw $v0, 0($sp)
+        	addi $sp, $sp, -4 #Khôi phục v0
 		j return
 #----------------------------------------------------------- 
 #s0: là địa chỉ mảng (nếu có gọi là s); là 1 hoặc 2 nếu lỗi
@@ -254,21 +269,21 @@ runScript: 	beq $s0, 1, Wrong
         	add $s4, $s0, $zero #Truyền địa chỉ mảng 
         	add $t5, $s7, $zero #và địa chỉ chuỗi vào hàm chuyển
 		jal StringSolve #Nếu chưa chuyển thì nhảy đến hàm chuyển
-run: 	add $s2, $zero, $zero #Gán s2 = i = 0
-	add $s3, $zero, $zero #Gán s3 = địa chỉ (a[i]) = 0
-	li $a0, 135 #Quay Marsbot 135* và bắt đầu chạy
-	jal ROTATE 
-	jal GO 
-	addi $v0, $zero, 32 #Trong 10000ms
-	li $a0, 10000
-	syscall
-DRAW: 	jal getVALUE #Lấy góc
-	beq $s1, -1, endDRAW #Nếu s1 = -1 thì kết thúc vẽ 
-	add $a0, $zero, $s1 #Quay Marsbot
-	jal ROTATE
-	jal getVALUE #Bật TRACK hoặc không
-	beq $s1, $zero, KeepRunning #Nếu s1 = 0 thì không bật TRACK
-	jal TRACK
+run: 		add $s2, $zero, $zero #Gán s2 = i = 0
+		add $s3, $zero, $zero #Gán s3 = địa chỉ (a[i]) = 0
+		li $a0, 135 #Quay Marsbot 135* và bắt đầu chạy
+		jal ROTATE 
+		jal GO 
+		addi $v0, $zero, 32 #Trong 10000ms
+		li $a0, 10000
+		syscall
+DRAW: 		jal getVALUE #Lấy góc
+		beq $s1, -1, endDRAW #Nếu s1 = -1 thì kết thúc vẽ 
+		add $a0, $zero, $s1 #Quay Marsbot
+		jal ROTATE
+		jal getVALUE #Bật TRACK hoặc không
+		beq $s1, $zero, KeepRunning #Nếu s1 = 0 thì không bật TRACK
+		jal TRACK
 KeepRunning: 	jal getVALUE #Lấy thời gian
 		addi $v0, $zero, 32 #Tiếp tục chạy trong (s1)ms
 		add $a0, $zero, $s1 
@@ -281,19 +296,18 @@ endDRAW: 	jal STOP
 		li $a1, 1
 		syscall
 		j resRA
-Wrong: 	beq $s0, 2, error2 #Nếu s0 = 1 hoặc 2 thì chuỗi sai và thông báo ra màn hình
-error1:	li $v0, 55
-	la $a0, Reasonwrong1
-	li $a1, 0
-	syscall
-	j endRun
-error2:	li $v0, 55
-	la $a0, Reasonwrong2
-	li $a1, 0
-	syscall 
-resRA:	lw $ra, 0($sp) #Khôi phục $ra
-        addi $sp, $sp, -4 
-endRun:	jr $ra
+Wrong: 		li $v0, 59
+		la $a0, StringWrong
+		beq $s0, 2, error2 #Nếu s0 = 1 hoặc 2 thì chuỗi sai và thông báo ra màn hình
+error1:		la $a1, Reasonwrong1
+		syscall
+		j endRun
+error2:		la $a1, Reasonwrong2
+		syscall 
+		j endRun
+resRA:		lw $ra, 0($sp) #Khôi phục $ra
+        	addi $sp, $sp, -4 
+endRun:		jr $ra
 #----------------------------------------------------------- 
 #StringSolve: Biến chuỗi thành mảng số
 #Input:	Địa chỉ chuỗi cần chuyển
@@ -350,37 +364,37 @@ end_of_StringSolve: 	addi $sp, $sp, -4
 #Input: s2: Vị trí trong mảng
 #Output: s1: Giá trị phần tử tại vị trí a[i]
 #----------------------------------------------------------- 
-getVALUE: addi $s2, $s2, 1 #i++
-sll $s4, $s2, 2 #Gán s4 = 4i
-add $s3, $s4, $s0 #s3 = 4i + địa chỉ mảng a = địa chỉ cùa a[i]
-lw $s1, 0($s3) #s1 = a[i]
-jr $ra
+getVALUE: 	addi $s2, $s2, 1 #i++
+		sll $s4, $s2, 2 #Gán s4 = 4i
+		add $s3, $s4, $s0 #s3 = 4i + địa chỉ mảng a = địa chỉ cùa a[i]
+		lw $s1, 0($s3) #s1 = a[i]
+		jr $ra
 
-GO:     li    $at, MOVING     # change MOVING port 
-        addi  $k0, $zero,1    # to  logic 1, 
-        sb    $k0, 0($at)     # to start running 
-        nop         
-        jr    $ra 
-        nop 
+GO:     	li    $at, MOVING     # change MOVING port 
+        	addi  $k0, $zero,1    # to  logic 1, 
+        	sb    $k0, 0($at)     # to start running 
+        	nop         
+        	jr    $ra 
+        	nop 
 
-STOP:   li    $at, MOVING     # change MOVING port to 0 
-        sb    $zero, 0($at)   # to stop 
-        nop 
-        jr    $ra 
-        nop 
+STOP:   	li    $at, MOVING     # change MOVING port to 0 
+        	sb    $zero, 0($at)   # to stop 
+        	nop 
+        	jr    $ra 
+        	nop 
 
-TRACK:  li    $at, LEAVETRACK # change LEAVETRACK port 
-        addi  $k0, $zero,1    # to  logic 1, 
-        sb    $k0, 0($at)     # to start tracking 
-        nop 
-        jr    $ra 
-        nop         
+TRACK:  	li    $at, LEAVETRACK # change LEAVETRACK port 
+        	addi  $k0, $zero,1    # to  logic 1, 
+        	sb    $k0, 0($at)     # to start tracking 
+        	nop 
+        	jr    $ra 
+        	nop         
 
-UNTRACK:li    $at, LEAVETRACK # change LEAVETRACK port to 0 
-        sb    $zero, 0($at)   # to stop drawing tail 
-        nop 
-        jr    $ra 
-        nop 
+UNTRACK:	li    $at, LEAVETRACK # change LEAVETRACK port to 0 
+        	sb    $zero, 0($at)   # to stop drawing tail 
+        	nop 
+        	jr    $ra 
+        	nop 
 #----------------------------------------------------------- 
 #ROTATE: Quay Marsbot
 #Input: a0: Góc quay từ 0 đến 359
@@ -389,8 +403,8 @@ UNTRACK:li    $at, LEAVETRACK # change LEAVETRACK port to 0
 #	180: South (down) 
 #	270: West  (left) 
 #----------------------------------------------------------- 
-ROTATE: li    $at, HEADING    # change HEADING port 
-        sw    $a0, 0($at)     # to rotate robot 
-        nop 
-        jr    $ra 
-        nop 
+ROTATE: 	li    $at, HEADING    # change HEADING port 
+        	sw    $a0, 0($at)     # to rotate robot 
+        	nop 
+        	jr    $ra 
+        	nop 
