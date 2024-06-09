@@ -146,6 +146,8 @@ endWM:		jr $ra
 #	k0: địa chỉ mảng của chuỗi tiếp theo (nếu chuỗi đang xét đúng)
 #----------------------------------------------------------- 
 Check:		li $a3, 0 #Khởi tạo số dấu phẩy = 0
+		lb $a2, 0($a0) #a2 = s[0]
+		beq $a2, 0x2C, wrong1  #Nếu ký tự đầu tiên là phẩy --> Lỗi cú pháp 
 loop_Check:	lb $a2, 0($a0) #a2 = s[i]
 		beq $a2, 0x2C, is_comma #Nếu s[i] = ',' thì nhảy đến is_comma
 		beq $a2, 0x20, continue #Nếu s[i] = ' ' thì bỏ qua nhảy đến continue
@@ -185,9 +187,11 @@ end_Check:	beq $v0, 0x2C, wrong1 #Nếu ký tự cuối cùng là ',' --> Lỗi 
 Check_Cause:	mfc0 $t4, $13 
 		li $t3, MASK_CAUSE_KEYMATRIX 
         	and $at, $t4, $t3 
-        	beq $at, $t3, Keymatrix_Intr #Nếu là ngắt do nhấn phím trên Digital Lab Sim thì nhảy đến Keymatrix_Intr
-        	li $v0, 55 #Nếu không thì thông báo ra màn hình là lỗi 
-        	la $a0, NotNormal #Thông báo lỗi bất thường
+        	bne $at, $t3, Unusual #Nếu không phải ngắt do nhấn phím trên Digital Lab Sim thì nhảy đến Unusual
+        	bne $t6, 1, notDone #Nếu chưa check xong thì thông báo ra màn hình	
+		j Keymatrix_Intr
+Unusual:       	li $v0, 55 #Thông báo ra màn hình là 
+      		la $a0, NotNormal #lỗi bất thường
         	li $a1, 0
         	syscall
        		li $v0, 10 #exit 
@@ -212,9 +216,9 @@ notDone:	addi $sp, $sp, 4 #Lưu v0 của chương trình chính vào stack
 #----------------------------------------------------------- 
 #s0: là địa chỉ mảng (nếu có gọi là s); là 1 hoặc 2 nếu lỗi
 #s7: địa chỉ chuỗi 
+#k1: Tên postscript đang xét
 #----------------------------------------------------------- 
-Keymatrix_Intr:	bne $t6, 1, notDone #Nếu chưa check xong thì thông báo ra màn hình	
-		li $t3, 0x81 #Kiểm tra xem có phải phím ở hàng 1 0, 1, 2, 3 được nhấn không
+Keymatrix_Intr:	li $t3, 0x81 #Kiểm tra xem có phải phím ở hàng 1 0, 1, 2, 3 được nhấn không
 		sb $t3, 0($t1) 
 		lb $a0, 0($t2) 
 		bne $a0, 0x11, Row2 #Nếu 0 không được nhấn thì kiểm tra hàng tiếp theo
@@ -267,15 +271,15 @@ runScript: 	beq $s0, 1, Wrong
 		addi $sp, $sp, 4 #Lưu $ra vào stack để dùng sau
         	sw $ra, 0($sp) 
         	add $s4, $s0, $zero #Truyền địa chỉ mảng 
-        	add $t5, $s7, $zero #và địa chỉ chuỗi vào hàm chuyển
+        	add $t5, $s7, $zero #và địa chỉ chuỗi vào hàm StringSolve
 		jal StringSolve #Nếu chưa chuyển thì nhảy đến hàm chuyển
 run: 		add $s2, $zero, $zero #Gán s2 = i = 0
 		add $s3, $zero, $zero #Gán s3 = địa chỉ (a[i]) = 0
 		li $a0, 135 #Quay Marsbot 135* và bắt đầu chạy
 		jal ROTATE 
 		jal GO 
-		addi $v0, $zero, 32 #Trong 10000ms
-		li $a0, 10000
+		addi $v0, $zero, 32 #Trong 14000ms
+		li $a0, 14000
 		syscall
 DRAW: 		jal getVALUE #Lấy góc
 		beq $s1, -1, endDRAW #Nếu s1 = -1 thì kết thúc vẽ 
@@ -310,8 +314,8 @@ resRA:		lw $ra, 0($sp) #Khôi phục $ra
 endRun:		jr $ra
 #----------------------------------------------------------- 
 #StringSolve: Biến chuỗi thành mảng số
-#Input:	Địa chỉ chuỗi cần chuyển
-#	Địa chỉ mảng của chuỗi đó
+#Input:	Địa chỉ chuỗi cần chuyển ($t5)
+#	Địa chỉ mảng của chuỗi đó ($s4)
 #Output: Mảng đã chuyển xong (phần tử đầu tiên từ 0 thành 1 (mảng đã chuyển))
 #Các thanh ghi sử dụng:
 #	t5: Địa chỉ chuỗi, gọi là s
@@ -362,6 +366,7 @@ end_of_StringSolve: 	addi $sp, $sp, -4
 #----------------------------------------------------------- 
 #getVALUE: Lấy giá trị từ mảng 
 #Input: s2: Vị trí trong mảng
+#	s0: Địa chỉ gốc của mảng
 #Output: s1: Giá trị phần tử tại vị trí a[i]
 #----------------------------------------------------------- 
 getVALUE: 	addi $s2, $s2, 1 #i++
