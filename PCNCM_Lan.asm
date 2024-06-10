@@ -48,6 +48,7 @@ Loop: 	nop
 	nop
 	nop
 	b Loop #Đợi người dùng nhấn phím trên Digital Lab Sim
+	b Loop
 			
 exit:	li $v0, 55
 	la $a0, EndofProgram
@@ -266,7 +267,7 @@ return: 	eret #Quay về chương trình chính
 #----------------------------------------------------------- 
 runScript: 	beq $s0, 1, Wrong 
 		beq $s0, 2, Wrong 
-		lw $s1, 0($t7)
+		lw $s1, 0($s0)
 		beq $s1, 1, run #Nếu chuỗi đã chuyển thành mảng số thì chạy script
 		addi $sp, $sp, 4 #Lưu $ra vào stack để dùng sau
         	sw $ra, 0($sp) 
